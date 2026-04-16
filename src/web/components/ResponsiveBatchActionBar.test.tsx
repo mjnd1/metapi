@@ -16,15 +16,34 @@ describe('ResponsiveBatchActionBar', () => {
     expect(root.root.findByType('button').children).toContain('批量启用');
   });
 
-  it('renders the desktop card wrapper on desktop', () => {
+  it('renders the desktop floating wrapper on desktop', () => {
+    const originalDocument = globalThis.document;
+    const body = {
+      appendChild() {},
+      removeChild() {},
+    };
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { body },
+    });
+
     const root = create(
       <ResponsiveBatchActionBar isMobile={false} info="已选 3 项">
         <button type="button">批量删除</button>
       </ResponsiveBatchActionBar>,
     );
 
-    const card = root.root.find((node) => node.props.className === 'card');
-    expect(card).toBeTruthy();
-    expect(root.root.findAllByType('span').some((node) => node.children.includes('已选 3 项'))).toBe(true);
+    try {
+      const floatingShell = root.root.find((node) => node.props.className === 'desktop-batch-bar-shell is-floating');
+      const floatingBar = root.root.find((node) => node.props.className === 'card desktop-batch-bar is-floating');
+      expect(floatingShell).toBeTruthy();
+      expect(floatingBar).toBeTruthy();
+      expect(root.root.findAllByType('span').some((node) => node.children.includes('已选 3 项'))).toBe(true);
+    } finally {
+      Object.defineProperty(globalThis, 'document', {
+        configurable: true,
+        value: originalDocument,
+      });
+    }
   });
 });

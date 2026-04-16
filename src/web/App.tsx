@@ -510,6 +510,13 @@ function AppShell() {
   }, [isMobile]);
 
   useEffect(() => {
+    document.documentElement.setAttribute(
+      'data-sidebar-collapsed',
+      !isMobile && sidebarCollapsed ? 'true' : 'false',
+    );
+  }, [isMobile, sidebarCollapsed]);
+
+  useEffect(() => {
     if (!isMobile && drawerOpen) {
       setDrawerOpen(false);
     }
@@ -781,7 +788,7 @@ function AppShell() {
         </div>
       </header>
 
-      <div className="app-layout">
+      <div className={`app-layout ${!isMobile && sidebarCollapsed ? 'sidebar-is-collapsed' : ''}`.trim()}>
         {isMobile ? (
           <MobileDrawer
             open={drawerOpen}
