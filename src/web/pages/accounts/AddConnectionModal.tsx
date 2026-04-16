@@ -11,6 +11,7 @@ import {
 } from "./useAccountConnectionModal.js";
 
 const SITE_SELECT_SEARCH_PLACEHOLDER = "筛选站点（名称 / 平台 / URL）";
+const SITE_SELECT_VIRTUAL_ITEM_HEIGHT = 56;
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -216,6 +217,8 @@ export default function AddConnectionModal({
                 placeholder="选择站点"
                 searchable
                 searchPlaceholder={SITE_SELECT_SEARCH_PLACEHOLDER}
+                virtualized
+                virtualItemHeight={SITE_SELECT_VIRTUAL_ITEM_HEIGHT}
               />
               <input
                 placeholder="连接名称（可选）"
@@ -460,6 +463,8 @@ export default function AddConnectionModal({
                 placeholder="选择站点"
                 searchable
                 searchPlaceholder={SITE_SELECT_SEARCH_PLACEHOLDER}
+                virtualized
+                virtualItemHeight={SITE_SELECT_VIRTUAL_ITEM_HEIGHT}
               />
               <input
                 placeholder="用户名"
@@ -558,6 +563,8 @@ export default function AddConnectionModal({
             placeholder="选择站点"
             searchable
             searchPlaceholder={SITE_SELECT_SEARCH_PLACEHOLDER}
+            virtualized
+            virtualItemHeight={SITE_SELECT_VIRTUAL_ITEM_HEIGHT}
           />
           <input
             placeholder="连接名称（可选）"
