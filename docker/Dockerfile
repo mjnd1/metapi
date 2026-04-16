@@ -3,22 +3,37 @@
 # no longer publish linux/arm/v7 manifests, which breaks our armv7 Docker jobs.
 FROM node:22-bookworm-slim AS builder
 
+# 1. 启用 Corepack 并准备 pnpm
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
+# 安装构建原生依赖所需的工具
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHON=/usr/bin/python3
 
-COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts --no-audit --no-fund
-RUN npm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund
+# 2. 复制依赖描述文件
+COPY package.json pnpm-lock.yaml ./
 
+# 3. 使用 BuildKit 缓存安装依赖
+# 注意：使用 --frozen-lockfile 确保与锁文件一致
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts --no-audit --no-fund
+RUN pnpm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund
+
+# 4. 复制代码并构建
 COPY . .
-RUN npm run build:web && npm run build:server
-RUN --mount=type=cache,target=/root/.npm npm prune --omit=dev --no-audit --no-fund
+RUN pnpm run build:web && pnpm run build:server
+# 5. 清理开发依赖 (仅保留生产环境所需的 node_modules)
+# 这一步是为了让最后的镜像更小
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm prune --omit=dev --no-audit --no-fund
 
+# --- 运行时阶段 ---
 FROM node:22-bookworm-slim
 
 WORKDIR /app
@@ -60,4 +75,5 @@ EXPOSE 4000
 ENV NODE_ENV=production
 ENV DATA_DIR=/app/data
 
+# 建议：确保 migrate.js 失败时容器能正确退出
 CMD ["sh", "-c", "node dist/server/db/migrate.js && node dist/server/index.js"]
