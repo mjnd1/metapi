@@ -24,7 +24,9 @@ COPY package.json pnpm-lock.yaml ./
 # 3. 使用 BuildKit 缓存安装依赖
 # 注意：使用 --frozen-lockfile 确保与锁文件一致
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-RUN pnpm rebuild better-sqlite3
+# 强制从源码编译 better-sqlite3（pnpm 必须进真实目录）
+RUN cd node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3 && \
+    npx node-gyp rebuild
 
 # 4. 复制代码并构建
 COPY . .
