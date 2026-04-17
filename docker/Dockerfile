@@ -7,6 +7,7 @@ FROM node:22-bookworm-slim AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# ENV PNPM_ALLOW_BUILD_SCRIPTS=true
 RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 WORKDIR /app
@@ -29,13 +30,19 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # 4. 复制代码并构建
 COPY . .
 RUN pnpm run build:web && pnpm run build:server
-RUN find /app/node_modules -name "better_sqlite3.node" -print
 # 5. 清理开发依赖 (仅保留生产环境所需的 node_modules)
 # 这一步是为了让最后的镜像更小
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm prune --prod
 
 # ✅ 加一个烟雾测试，构建时就把问题暴露出来
 RUN node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
+RUN find /app/node_modules -name "better_sqlite3.node" -print -ls
+
+# 导出一个可发布目录
+RUN pnpm deploy --prod /prod
+
+# 再确认 deploy 出来的目录也能跑
+RUN cd /prod && node -e "require('better-sqlite3'); console.log('better-sqlite3 deploy OK')"
 
 # --- 运行时阶段 ---
 FROM node:22-bookworm-slim
@@ -67,10 +74,15 @@ RUN apt-get update \
   && chmod +x /usr/local/bin/helm \
   && rm -rf /tmp/helm.tgz "/tmp/linux-${ARCH}" /var/lib/apt/lists/*
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /prod /app
+# COPY --from=builder /app/dist ./dist
+# COPY --from=builder /app/node_modules ./node_modules
+# COPY --from=builder /app/package.json ./
+# COPY --from=builder /app/drizzle ./drizzle
+
+# 关键：验证最终镜像真的可以加载
+RUN node -e "require('better-sqlite3'); console.log('better-sqlite3 final OK')"
+
 
 RUN mkdir -p /app/data
 
