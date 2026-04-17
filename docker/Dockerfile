@@ -34,17 +34,17 @@ RUN pnpm run build:web && pnpm run build:server
 # 这一步是为了让最后的镜像更小
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm prune --prod
 
-# ✅ 加一个烟雾测试，构建时就把问题暴露出来
+# 加一个烟雾测试，构建时就把问题暴露出来
 RUN node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
-RUN find /app/node_modules -name "better_sqlite3.node" -print -ls
+RUN node -p "require.resolve('better-sqlite3')"
+RUN find -L /app/node_modules -name "better_sqlite3.node" -print -ls || true
+RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3 || true
+RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/build || true
+RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/lib/binding || true
 
-# 导出一个可发布目录
-RUN pnpm deploy --prod /prod
-
-# 再确认 deploy 出来的目录也能跑
-RUN cd /prod && node -e "require('better-sqlite3'); console.log('better-sqlite3 deploy OK')"
-
-# --- 运行时阶段 ---
+# -------------------------
+# Runtime: 原地安装 prod 依赖
+# -------------------------
 FROM node:22-bookworm-slim
 
 WORKDIR /app
@@ -74,11 +74,12 @@ RUN apt-get update \
   && chmod +x /usr/local/bin/helm \
   && rm -rf /tmp/helm.tgz "/tmp/linux-${ARCH}" /var/lib/apt/lists/*
 
-COPY --from=builder /prod /app
-# COPY --from=builder /app/dist ./dist
-# COPY --from=builder /app/node_modules ./node_modules
-# COPY --from=builder /app/package.json ./
-# COPY --from=builder /app/drizzle ./drizzle
+# 在最终镜像里安装生产依赖
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --prod --frozen-lockfile
+
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/drizzle ./drizzle
 
 # 关键：验证最终镜像真的可以加载
 RUN node -e "require('better-sqlite3'); console.log('better-sqlite3 final OK')"
