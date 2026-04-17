@@ -7,6 +7,7 @@ FROM node:22-bookworm-slim AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV BETTER_SQLITE3_DISABLE_PREBUILT_BINARY=0
 RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 WORKDIR /app
@@ -24,9 +25,9 @@ COPY package.json pnpm-lock.yaml ./
 # 3. 使用 BuildKit 缓存安装依赖
 # 注意：使用 --frozen-lockfile 确保与锁文件一致
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
-# 强制从源码编译 better-sqlite3（pnpm 必须进真实目录）
-RUN cd node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3 && \
-    npx node-gyp rebuild
+# # 强制从源码编译 better-sqlite3（pnpm 必须进真实目录）
+# RUN cd node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3 && \
+#     npx node-gyp rebuild
 
 # 4. 复制代码并构建
 COPY . .
