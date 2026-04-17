@@ -7,7 +7,6 @@ FROM node:22-bookworm-slim AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-ENV BETTER_SQLITE3_DISABLE_PREBUILT_BINARY=0
 RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 WORKDIR /app
@@ -26,8 +25,13 @@ COPY package.json pnpm-lock.yaml ./
 # 注意：使用 --frozen-lockfile 确保与锁文件一致
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # # 强制从源码编译 better-sqlite3（pnpm 必须进真实目录）
-# RUN cd node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3 && \
-#     npx node-gyp rebuild
+RUN cd node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3 && \
+    npx node-gyp rebuild
+RUN mkdir -p \
+    node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/lib/binding/node-v127-linux-x64 && \
+    cp \
+    node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
+    node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/lib/binding/node-v127-linux-x64/better_sqlite3.node
 
 # 4. 复制代码并构建
 COPY . .
@@ -43,6 +47,7 @@ RUN find -L /app/node_modules -name "better_sqlite3.node" -print -ls || true
 RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3 || true
 RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/build || true
 RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/lib/binding || true
+RUN ls -l node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/lib/binding/**/*.node
 RUN ls -l node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/*.node
 
 # -------------------------
