@@ -7,7 +7,6 @@ FROM node:22-bookworm-slim AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-# ENV PNPM_ALLOW_BUILD_SCRIPTS=true
 RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 WORKDIR /app
@@ -45,7 +44,7 @@ RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sql
 # -------------------------
 # Runtime: 原地安装 prod 依赖
 # -------------------------
-FROM node:22-bookworm-slim
+FROM node:22-bookworm-slim AS runtime
 
 WORKDIR /app
 
@@ -74,11 +73,9 @@ RUN apt-get update \
   && chmod +x /usr/local/bin/helm \
   && rm -rf /tmp/helm.tgz "/tmp/linux-${ARCH}" /var/lib/apt/lists/*
 
-# 在最终镜像里安装生产依赖
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --prod --frozen-lockfile
-
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/drizzle ./drizzle
 
 # 关键：验证最终镜像真的可以加载
