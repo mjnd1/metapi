@@ -23,15 +23,19 @@ COPY package.json pnpm-lock.yaml ./
 
 # 3. 使用 BuildKit 缓存安装依赖
 # 注意：使用 --frozen-lockfile 确保与锁文件一致
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts
-RUN pnpm rebuild esbuild sharp better-sqlite3
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+# RUN pnpm rebuild esbuild sharp better-sqlite3
 
 # 4. 复制代码并构建
 COPY . .
 RUN pnpm run build:web && pnpm run build:server
+RUN find /app/node_modules -name "better_sqlite3.node" -print
 # 5. 清理开发依赖 (仅保留生产环境所需的 node_modules)
 # 这一步是为了让最后的镜像更小
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm prune --prod
+
+# ✅ 加一个烟雾测试，构建时就把问题暴露出来
+RUN node -e "require('better-sqlite3'); console.log('better-sqlite3 OK')"
 
 # --- 运行时阶段 ---
 FROM node:22-bookworm-slim
