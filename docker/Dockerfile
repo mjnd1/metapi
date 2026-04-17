@@ -7,7 +7,7 @@ FROM node:22-bookworm-slim AS builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ COPY package.json pnpm-lock.yaml ./
 
 # 3. 使用 BuildKit 缓存安装依赖
 # 注意：使用 --frozen-lockfile 确保与锁文件一致
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts --no-audit --no-fund
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm rebuild esbuild sharp better-sqlite3 --no-audit --no-fund
 
 # 4. 复制代码并构建
