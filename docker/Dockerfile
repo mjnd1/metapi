@@ -31,7 +31,7 @@ COPY . .
 RUN pnpm run build:web && pnpm run build:server
 # 5. 清理开发依赖 (仅保留生产环境所需的 node_modules)
 # 这一步是为了让最后的镜像更小
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm prune --omit=dev
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm prune --prod
 
 # --- 运行时阶段 ---
 FROM node:22-bookworm-slim
