@@ -48,7 +48,6 @@ RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sql
 RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/build || true
 RUN ls -la /app/node_modules/.pnpm/better-sqlite3@12.8.0/node_modules/better-sqlite3/lib/binding || true
 RUN ls -l node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/lib/binding/**/*.node
-RUN ls -l node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build/*.node
 
 # -------------------------
 # Runtime: 原地安装 prod 依赖
